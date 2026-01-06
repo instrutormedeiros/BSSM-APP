@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSSM Premium | Hospital Santa Marta</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- IDENTIDADE VISUAL HSM --- */
+        :root {
+            --hsm-blue: #005eb8;       /* Azul Institucional */
+            --hsm-blue-dark: #003d7a;  /* Contraste */
+            --hsm-cyan: #00a896;       /* Detalhe Saúde */
+            --bg-gradient-start: #f0f7ff;
+            --bg-gradient-end: #e1e9f0;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            color: #1e293b;
+            overflow-x: hidden; /* Evita scroll lateral */
+        }
+
+        h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; }
+
+        /* --- FUNDO ANIMADO (DA V5.0) --- */
+        .animated-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: linear-gradient(120deg, #f0f7ff, #e0f2fe, #f0fdfa);
+            background-size: 200% 200%;
+            animation: gradientMove 15s ease infinite;
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- GLASSMORPHISM PREMIUM (DA V4.0) --- */
+        .glass-premium {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px -10px rgba(0, 94, 184, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        /* Animação de Hover nos Painéis */
+        .glass-premium:hover {
+            box-shadow: 0 15px 50px -10px rgba(0, 94, 184, 0.2);
+            border-color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Card Mobile e Inputs */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 20px 25px -5px rgba(0, 94, 184, 0.15);
+            border-color: var(--hsm-blue);
+        }
+
+        .input-hsm {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .input-hsm:focus {
+            background: #ffffff;
+            border-color: var(--hsm-blue);
+            box-shadow: 0 0 0 4px rgba(0, 94, 184, 0.1);
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        /* --- ANIMAÇÕES DE LINHA DE TABELA (DA V5.0) --- */
+        .table-row-animate {
+            transition: all 0.2s ease;
+        }
+        .table-row-animate:hover {
+            background-color: #f0f9ff;
+            transform: scale(1.002);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+            position: relative;
+            border-left: 4px solid var(--hsm-blue);
+        }
+
+        /* --- BOTÕES COM EFEITO --- */
+        .btn-animate {
+            transition: all 0.2s;
+        }
+        .btn-animate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 94, 184, 0.3);
+            filter: brightness(110%);
+        }
+        .btn-animate:active {
+            transform: translateY(1px);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.375rem 0.75rem; border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.025em; transition: all 0.3s;
+        }
+        .badge:hover { transform: scale(1.05); }
+
+        /* Upload Area */
+        .upload-area {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23005EB8FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background-color: rgba(0, 94, 184, 0.05);
+            transform: scale(1.01);
+        }
+
+        /* Animação de Entrada */
+        .animate-enter { animation: enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes enter { to { opacity: 1; transform: translateY(0); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--hsm-blue); }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Fundo Animado -->
+    <div class="animated-bg"></div>
+
+    <!-- NOTIFICAÇÕES -->
+    <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- TELA DE LOGIN -->
+    <section id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center w-full h-full bg-[#0f172a]/60 backdrop-blur-md transition-all duration-700">
+        <div class="relative bg-white/95 backdrop-blur-xl p-10 rounded-[2rem] shadow-2xl w-full max-w-md mx-4 animate-enter border border-white overflow-hidden">
+            
+            <!-- Efeitos de Luz no Login -->
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-60"></div>
+            <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-teal-100 rounded-full blur-3xl opacity-60"></div>
+
+            <div class="relative z-10 flex flex-col items-center justify-center mb-10">
+                <div class="h-24 mb-4 flex items-center justify-center p-3 rounded-2xl bg-white shadow-md hover:scale-105 transition-transform duration-500">
+                     <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" 
+                          alt="Hospital Santa Marta" 
+                          class="h-full w-auto object-contain">
+                </div>
+                <h1 class="text-3xl font-extrabold text-[#005eb8] tracking-tight">Portal BSSM</h1>
+                <div class="h-1 w-16 bg-gradient-to-r from-[#005eb8] to-[#00a896] rounded-full mt-2"></div>
+            </div>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-6 relative z-10">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Usuário / Matrícula</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-user-doctor text-slate-400 group-focus-within:text-[#005eb8] transition-colors"></i>
+                        </div>
+                        <input type="text" id="username" class="input-hsm pl-11 block w-full rounded-xl py-3.5 text-sm font-medium text-slate-800 placeholder-slate-400" placeholder="Ex: admin ou 8188" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Senha</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-slate-400 group-focus-within:text-[#005eb8] transition-colors"></i>
+                        </div>
+                        <input type="password" id="password" class="input-hsm pl-11 block w-full rounded-xl py-3.5 text-sm font-medium text-slate-800 placeholder-slate-400" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-animate w-full text-white bg-gradient-to-r from-[#005eb8] to-[#003d7a] font-bold rounded-xl text-sm px-5 py-4 text-center shadow-lg shadow-blue-900/20">
+                    ACESSAR SISTEMA
+                </button>
+                
+                <div class="pt-6 text-center border-t border-slate-100">
+                    <p class="text-xs text-slate-400 bg-slate-50 py-2 rounded-lg">
+                        <span class="font-bold">Acesso Gestor:</span> admin / admin
+                    </p>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- APLICAÇÃO PRINCIPAL -->
+    <div id="app-container" class="hidden flex-1 flex flex-col h-full relative animate-enter">
+        
+        <!-- HEADER -->
+        <header class="glass-premium z-40 sticky top-0">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-24">
+                    <!-- Logo Header -->
+                    <div class="flex items-center gap-6 hover:scale-105 transition-transform duration-300 cursor-pointer">
+                        <div class="h-12 w-auto flex items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                             <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" class="h-full w-auto">
+                        </div>
+                        <div class="hidden md:block w-px h-10 bg-slate-300"></div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800 leading-none">BSSM <span class="text-[#005eb8]">Gestão</span></h1>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Benefício de Saúde Santa Marta</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Perfil -->
+                    <div class="flex items-center gap-6">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-bold text-slate-800" id="header-username">Usuário</p>
+                            <span id="role-badge" class="inline-block text-[10px] font-black uppercase tracking-wider text-white bg-[#00a896] px-2 py-0.5 rounded shadow-sm">
+                                Colaborador
+                            </span>
+                        </div>
+                        <button onclick="handleLogout()" class="btn-animate w-12 h-12 rounded-full bg-white border border-slate-200 hover:bg-red-50 hover:border-red-200 text-slate-400 hover:text-red-500 flex items-center justify-center shadow-sm" title="Sair">
+                            <i class="fa-solid fa-power-off text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO (Scrollável) -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
+            <div class="max-w-7xl mx-auto space-y-8">
+
+                <!-- PAINEL DO GESTOR -->
+                <div id="manager-panel" class="hidden glass-premium rounded-3xl p-8 relative overflow-hidden group border-l-8 border-[#005eb8]">
+                    <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-blue-50 to-transparent opacity-50 pointer-events-none transition-transform group-hover:scale-110 duration-700"></div>
+                    
+                    <div class="relative z-10 flex flex-col lg:flex-row gap-8 items-stretch">
+                        <div class="flex-1 space-y-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                                    <span class="bg-blue-100 text-[#005eb8] p-2 rounded-lg shadow-sm"><i class="fa-solid fa-database"></i></span>
+                                    Gestão da Base de Dados
+                                </h2>
+                                <p class="text-slate-500 mt-2">Atualização semanal da planilha de elegibilidade.</p>
+                            </div>
+                            
+                            <!-- Stats com Hover -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <p class="text-xs font-bold text-slate-400 uppercase">Total</p>
+                                    <p class="text-2xl font-bold text-slate-800" id="stat-total">0</p>
+                                </div>
+                                <div class="bg-emerald-50 p-4 rounded-2xl shadow-sm border border-emerald-100 hover:shadow-md transition-shadow">
+                                    <p class="text-xs font-bold text-emerald-600 uppercase">Elegíveis</p>
+                                    <p class="text-2xl font-bold text-emerald-700" id="stat-eligible">0</p>
+                                </div>
+                                <div class="bg-rose-50 p-4 rounded-2xl shadow-sm border border-rose-100 hover:shadow-md transition-shadow">
+                                    <p class="text-xs font-bold text-rose-600 uppercase">Inaptos</p>
+                                    <p class="text-2xl font-bold text-rose-700" id="stat-ineligible">0</p>
+                                </div>
+                                <div class="bg-blue-50 p-4 rounded-2xl shadow-sm border border-blue-100 hover:shadow-md transition-shadow">
+                                    <p class="text-xs font-bold text-blue-600 uppercase">Data Base</p>
+                                    <p class="text-xs font-bold text-blue-800 mt-1" id="stat-date">--</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropzone Animada -->
+                        <div class="flex-1 upload-area rounded-2xl cursor-pointer relative flex flex-col items-center justify-center p-8 bg-white/50 group hover:shadow-xl transition-all" id="drop-zone">
+                            <input type="file" id="file-upload" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" onchange="handleFileUpload(this)">
+                            <div class="w-16 h-16 bg-[#005eb8] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-lg">Atualizar Dados</h3>
+                            <p class="text-sm text-slate-500 mt-1 text-center">Clique ou arraste <strong>.xlsx</strong> ou <strong>.csv</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FILTROS -->
+                <div class="glass-premium rounded-3xl p-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 pb-4">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-filter text-[#00a896]"></i> Filtros Avançados
+                        </h3>
+                        <button onclick="clearFilters()" class="btn-animate text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-eraser"></i> Limpar Tudo
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Matrícula</label>
+                            <input type="text" id="filter-matricula" onkeyup="applyFilters()" class="input-hsm w-full rounded-lg px-3 py-2 text-sm" placeholder="Digite...">
+                        </div>
+                        <div class="space-y-1 xl:col-span-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Nome Colaborador</label>
+                            <input type="text" id="filter-nome" onkeyup="applyFilters()" class="input-hsm w-full rounded-lg px-3 py-2 text-sm" placeholder="Buscar nome...">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Cargo</label>
+                            <select id="filter-cargo" onchange="applyFilters()" class="input-hsm w-full rounded-lg px-3 py-2 text-sm cursor-pointer">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Local/Setor</label>
+                            <select id="filter-local" onchange="applyFilters()" class="input-hsm w-full rounded-lg px-3 py-2 text-sm cursor-pointer">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Status</label>
+                            <select id="filter-status" onchange="applyFilters()" class="input-hsm w-full rounded-lg px-3 py-2 text-sm cursor-pointer">
+                                <option value="">Todos</option>
+                                <option value="ok">Elegíveis</option>
+                                <option value="warning">Em Análise</option>
+                                <option value="error">Inaptos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LISTA DE DADOS -->
+                <div class="glass-premium rounded-3xl overflow-hidden min-h-[400px] relative">
+                    <!-- Loading/Empty State -->
+                    <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-10">
+                        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100 animate-pulse">
+                            <i class="fa-solid fa-folder-open text-4xl text-slate-300"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-700">Aguardando Consulta</h3>
+                        <p class="text-sm text-slate-400">Utilize os filtros acima ou aguarde o gestor carregar a base.</p>
+                    </div>
+
+                    <!-- Tabela Desktop -->
+                    <div class="hidden md:block overflow-x-auto relative z-20" id="desktop-table-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50/80 backdrop-blur border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 shadow-sm">
+                                <tr>
+                                    <th class="px-6 py-4">Matrícula</th>
+                                    <th class="px-6 py-4">Nome</th>
+                                    <th class="px-6 py-4">Cargo</th>
+                                    <th class="px-6 py-4">Local</th>
+                                    <th class="px-6 py-4 text-center">Elegibilidade</th>
+                                    <th class="px-6 py-4">Obs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100 text-sm text-slate-600 bg-white/50">
+                                <!-- Dados Inseridos via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Cards Mobile -->
+                    <div class="md:hidden space-y-4 p-4 relative z-20" id="mobile-cards">
+                        <!-- Dados Inseridos via JS -->
+                    </div>
+
+                    <!-- Contador -->
+                    <div class="bg-white/80 border-t border-slate-200 px-6 py-3 text-xs font-bold text-slate-400 text-right uppercase relative z-30" id="results-count">
+                        Registros: 0
+                    </div>
+                </div>
+
+                <!-- RODAPÉ INSTITUCIONAL (AGORA NO FINAL DO FLUXO, NÃO FIXO) -->
+                <footer class="mt-8 mb-4 border-t border-slate-200/60 pt-6">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 opacity-70 hover:opacity-100 transition-opacity">
+                        <div class="flex items-center gap-3">
+                            <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" class="h-8 w-auto grayscale hover:grayscale-0 transition-all">
+                            <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                                Hospital Santa Marta <span class="mx-2 text-slate-300">|</span> <span id="current-year">2026</span>
+                            </span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 font-medium">
+                            Plataforma Segura BSSM &copy; Todos os direitos reservados.
+                        </div>
+                    </div>
+                </footer>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPT (LÓGICA INTACTA DA V4) -->
+    <script>
+        const DB_KEY = 'bssm_ultimate_db_v4';
+        const AUTH_KEY = 'bssm_auth_session';
+        
+        let state = {
+            user: null, rawData: [], filteredData: [],
+            filters: { matricula: '', nome: '', cargo: '', local: '', status: '' }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+            loadSession();
+            loadData();
+        });
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            
+            // Pequeno feedback visual no botão
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+
+            setTimeout(() => {
+                if (u === 'admin' && p === 'admin') loginSuccess({ name: 'Gestor Responsável', role: 'admin' });
+                else if (u && p) loginSuccess({ name: u, role: 'user' });
+                else {
+                    showToast('Credenciais inválidas.', 'error');
+                    btn.innerHTML = originalText;
+                }
+            }, 800);
+        }
+
+        function loginSuccess(user) {
+            state.user = user;
+            localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+            const loginScreen = document.getElementById('login-screen');
+            loginScreen.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                loginScreen.classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                updateInterface();
+                showToast(`Bem-vindo, ${user.name}`, 'success');
+            }, 600);
+        }
+
+        function handleLogout() {
+            localStorage.removeItem(AUTH_KEY);
+            location.reload();
+        }
+
+        function loadSession() {
+            const session = localStorage.getItem(AUTH_KEY);
+            if (session) {
+                state.user = JSON.parse(session);
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                updateInterface();
+            }
+        }
+
+        function updateInterface() {
+            if (!state.user) return;
+            document.getElementById('header-username').textContent = state.user.name;
+            const badge = document.getElementById('role-badge');
+            const managerPanel = document.getElementById('manager-panel');
+
+            if (state.user.role === 'admin') {
+                badge.textContent = 'GESTOR DO SISTEMA';
+                badge.className = "inline-block text-[10px] font-black uppercase tracking-wider text-white bg-[#005eb8] px-2 py-0.5 rounded shadow-sm";
+                managerPanel.classList.remove('hidden');
+            } else {
+                badge.textContent = 'COLABORADOR';
+                badge.className = "inline-block text-[10px] font-black uppercase tracking-wider text-white bg-[#00a896] px-2 py-0.5 rounded shadow-sm";
+                managerPanel.classList.add('hidden');
+            }
+        }
+
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            showToast('Lendo arquivo de dados...', 'info');
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                    const cleanData = json.map(row => {
+                        const get = (keys) => {
+                            for (let k of Object.keys(row)) {
+                                if (keys.some(key => k.toLowerCase().trim() === key.toLowerCase())) return row[k];
+                            }
+                            return '';
+                        };
+                        return {
+                            matricula: String(get(['Matrícula', 'Matricula', 'MATRICULA'])).trim(),
+                            nome: String(get(['Nome', 'NOME', 'Colaborador'])).trim(),
+                            cargo: String(get(['Cargo', 'CARGO'])).trim(),
+                            local: String(get(['Local', 'LOCAL', 'Setor'])).trim(),
+                            elegibilidade: String(get(['Elegibilidade', 'ELEGIBILIDADE', 'Status'])).trim(),
+                            obs: String(get(['Obs', 'OBS', 'Observação'])).trim()
+                        };
+                    }).filter(r => r.nome || r.matricula);
+
+                    if (cleanData.length === 0) throw new Error("Sem dados válidos");
+
+                    state.rawData = cleanData;
+                    state.lastUpdated = new Date().toLocaleDateString('pt-BR');
+                    localStorage.setItem(DB_KEY, JSON.stringify({ data: state.rawData, date: state.lastUpdated }));
+                    updateDropdowns();
+                    applyFilters();
+                    showToast(`${cleanData.length} registros atualizados!`, 'success');
+                } catch (error) {
+                    showToast('Erro ao processar arquivo.', 'error');
+                }
+            };
+            input.value = '';
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem(DB_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.rawData = parsed.data || [];
+                state.lastUpdated = parsed.date || '--';
+                updateDropdowns();
+                applyFilters();
+            }
+        }
+
+        function updateDropdowns() {
+            const cargos = [...new Set(state.rawData.map(i => i.cargo).filter(Boolean))].sort();
+            const locais = [...new Set(state.rawData.map(i => i.local).filter(Boolean))].sort();
+            const fill = (id, items) => {
+                const el = document.getElementById(id);
+                const current = el.value;
+                el.innerHTML = `<option value="">Todos</option>${items.map(i => `<option value="${i}">${i}</option>`).join('')}`;
+                if (items.includes(current)) el.value = current;
+            };
+            fill('filter-cargo', cargos);
+            fill('filter-local', locais);
+        }
+
+        function clearFilters() {
+            ['matricula', 'nome', 'cargo', 'local', 'status'].forEach(id => document.getElementById(`filter-${id}`).value = '');
+            applyFilters();
+            showToast('Filtros limpos', 'info');
+        }
+
+        function getStatus(text) {
+            const s = text.toLowerCase();
+            if (s.includes('sem carência') || s.includes('elegível') || s.includes('ativo')) return 'ok';
+            if (s.includes('afastado') || s.includes('inapto') || s.includes('cancelado')) return 'error';
+            return 'warning';
+        }
+
+        function applyFilters() {
+            const f = {
+                matricula: document.getElementById('filter-matricula').value.toLowerCase(),
+                nome: document.getElementById('filter-nome').value.toLowerCase(),
+                cargo: document.getElementById('filter-cargo').value,
+                local: document.getElementById('filter-local').value,
+                status: document.getElementById('filter-status').value
+            };
+            state.filteredData = state.rawData.filter(item => {
+                const matchesMatricula = item.matricula.toLowerCase().includes(f.matricula);
+                const matchesNome = item.nome.toLowerCase().includes(f.nome);
+                const matchesCargo = f.cargo ? item.cargo === f.cargo : true;
+                const matchesLocal = f.local ? item.local === f.local : true;
+                let matchesStatus = true;
+                if (f.status) matchesStatus = getStatus(item.elegibilidade) === f.status;
+                return matchesMatricula && matchesNome && matchesCargo && matchesLocal && matchesStatus;
+            });
+            render();
+        }
+
+        function render() {
+            const tbody = document.getElementById('table-body');
+            const cards = document.getElementById('mobile-cards');
+            const empty = document.getElementById('empty-state');
+            const container = document.getElementById('desktop-table-container');
+            const count = document.getElementById('results-count');
+
+            let stats = { total: 0, ok: 0, error: 0 };
+            state.rawData.forEach(i => {
+                stats.total++;
+                const s = getStatus(i.elegibilidade);
+                if (s === 'ok') stats.ok++;
+                if (s === 'error') stats.error++;
+            });
+
+            document.getElementById('stat-total').innerText = stats.total;
+            document.getElementById('stat-eligible').innerText = stats.ok;
+            document.getElementById('stat-ineligible').innerText = stats.error;
+            document.getElementById('stat-date').innerText = state.lastUpdated || '--';
+            count.innerText = `Registros: ${state.filteredData.length}`;
+
+            tbody.innerHTML = '';
+            cards.innerHTML = '';
+
+            if (state.filteredData.length === 0) {
+                empty.classList.remove('hidden');
+                container.classList.add('opacity-0');
+            } else {
+                empty.classList.add('hidden');
+                container.classList.remove('opacity-0');
+
+                state.filteredData.forEach(item => {
+                    const st = getStatus(item.elegibilidade);
+                    const config = {
+                        ok: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'fa-check-circle', border: 'border-emerald-200' },
+                        warning: { bg: 'bg-amber-100', text: 'text-amber-700', icon: 'fa-triangle-exclamation', border: 'border-amber-200' },
+                        error: { bg: 'bg-rose-100', text: 'text-rose-700', icon: 'fa-circle-xmark', border: 'border-rose-200' }
+                    }[st];
+
+                    // Tabela com Animação de Hover
+                    const tr = document.createElement('tr');
+                    tr.className = "table-row-animate border-b border-slate-50 last:border-0 cursor-default group";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-mono font-bold text-slate-500 text-xs group-hover:text-[#005eb8] transition-colors">${item.matricula}</td>
+                        <td class="px-6 py-4 font-bold text-slate-800">${item.nome}</td>
+                        <td class="px-6 py-4 text-xs font-semibold uppercase text-slate-500">${item.cargo}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">${item.local}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="badge ${config.bg} ${config.text} border ${config.border} shadow-sm">
+                                <i class="fa-solid ${config.icon}"></i> ${item.elegibilidade}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs italic text-slate-400 max-w-[150px] truncate" title="${item.obs}">${item.obs}</td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    // Card Mobile com Animação
+                    const card = document.createElement('div');
+                    card.className = "glass-card p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden";
+                    card.innerHTML = `
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 ${st === 'ok' ? 'bg-emerald-500' : st === 'error' ? 'bg-rose-500' : 'bg-amber-400'}"></div>
+                        <div class="flex justify-between items-start pl-3">
+                            <div>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">MAT: ${item.matricula}</span>
+                                <h4 class="text-lg font-bold text-slate-800 leading-tight mt-1">${item.nome}</h4>
+                                <p class="text-xs font-bold text-[#005eb8] uppercase mt-1">${item.cargo}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 pl-3 mt-2">
+                             <span class="badge bg-slate-100 text-slate-600 border border-slate-200">
+                                <i class="fa-solid fa-location-dot"></i> ${item.local}
+                            </span>
+                             <span class="badge ${config.bg} ${config.text} border ${config.border}">
+                                <i class="fa-solid ${config.icon}"></i> ${item.elegibilidade}
+                            </span>
+                        </div>
+                         ${item.obs ? `<div class="pl-3 mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 italic"><i class="fa-solid fa-note-sticky mr-1"></i> ${item.obs}</div>` : ''}
+                    `;
+                    cards.appendChild(card);
+                });
+            }
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const styles = {
+                success: 'bg-[#00a896] text-white shadow-emerald-500/30',
+                error: 'bg-rose-600 text-white shadow-rose-500/30',
+                info: 'bg-[#005eb8] text-white shadow-blue-500/30'
+            };
+            const icon = type === 'success' ? 'fa-check' : type === 'error' ? 'fa-xmark' : 'fa-info';
+            toast.className = `${styles[type]} backdrop-blur-md px-6 py-4 rounded-xl shadow-xl flex items-center gap-4 transform transition-all duration-500 translate-x-10 opacity-0 min-w-[300px] border-l-4 border-white/20`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-xl"></i> <span class="font-bold text-sm tracking-wide">${msg}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
