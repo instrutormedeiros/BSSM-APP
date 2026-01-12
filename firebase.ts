@@ -4,14 +4,15 @@ import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/fi
 
 // IMPORTANTE: Preencha com os dados do seu Console Firebase
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  databaseURL: "https://SEU_PROJETO-default-rtdb.firebaseio.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  messagingSenderId: "SEU_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyAk3bwFb7ROhsR5Cu3YXdo3e_n6KHI9xmA",
+  authDomain: "bssm---app.firebaseapp.com",
+  databaseURL: "https://bssm---app-default-rtdb.firebaseio.com",
+  projectId: "bssm---app",
+  storageBucket: "bssm---app.firebasestorage.app",
+  messagingSenderId: "875637451285",
+  appId: "1:875637451285:web:132da6ecd7f3f7343c7c1c"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);

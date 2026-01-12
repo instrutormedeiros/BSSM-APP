@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import Layout from './components/Layout';
-import MemberCard from './components/MemberCard';
-import AdminDashboard from './components/AdminDashboard';
-import { User, UserRole } from './types';
-import { db, ref, onValue } from './firebase';
+import Layout from './components/Layout.tsx';
+import MemberCard from './components/MemberCard.tsx';
+import AdminDashboard from './components/AdminDashboard.tsx';
+import { User, UserRole } from './types.ts';
+import { db, ref, onValue } from './firebase.ts';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -14,13 +14,11 @@ const App: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Sincronização em tempo real com Firebase
   useEffect(() => {
     const membersRef = ref(db, 'members');
     const unsubscribe = onValue(membersRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Converte objeto do Firebase para Array
         const membersList: User[] = Object.values(data);
         setAllMembers(membersList);
       } else {
@@ -42,7 +40,6 @@ const App: React.FC = () => {
     const user = loginUser.trim();
     const pass = loginPass.trim();
 
-    // Login Admin (Hardcoded por segurança inicial)
     if (user.toLowerCase() === 'admin' && pass.toLowerCase() === 'admin') {
       const admin: User = { 
         id: 'admin', 
@@ -57,8 +54,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Busca na base sincronizada do Firebase
-    // Busca por Matrícula ou CPF (que está dentro do campo cpf ou obs)
     const found = allMembers.find(m => 
       m.id === user || 
       (m.cpf && m.cpf === user.replace(/\D/g, '')) ||
