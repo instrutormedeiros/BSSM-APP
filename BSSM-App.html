@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <meta name="theme-color" content="#005eb8" />
+    <title>BSSM Portal | Hospital Santa Marta</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { 
+              sans: ['Inter', 'sans-serif'], 
+              heading: ['"Plus Jakarta Sans"', 'sans-serif'] 
+            },
+            colors: {
+              hsm: { 
+                blue: '#005eb8', 
+                dark: '#003d7a', 
+                cyan: '#00a896', 
+                light: '#e6f0fa',
+                surface: '#f8fafc'
+              }
+            },
+            boxShadow: {
+              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+              'glow': '0 0 15px rgba(0, 94, 184, 0.3)',
+              'card': '0 10px 40px -10px rgba(0,0,0,0.08)'
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              'slide-up': 'slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+              'scale-in': 'scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+              'pulse-soft': 'pulseSoft 3s infinite',
+            },
+            keyframes: {
+              fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+              slideUp: { '0%': { transform: 'translateY(30px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+              scaleIn: { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
+              pulseSoft: { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.7' } }
+            }
+          },
+        },
+      }
+    </script>
+
+    <!-- React & Libraries Imports -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1?deps=react@18.2.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs"
+  }
+}
+</script>
+    
+    <!-- Babel for JSX/TS Compilation in Browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      
+      /* Glassmorphism Utilities */
+      .glass {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .glass-dark {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      /* Smooth rendering */
+      body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    </style>
+  </head>
+  <body class="bg-hsm-surface text-slate-800 antialiased overflow-x-hidden selection:bg-hsm-blue selection:text-white">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react,typescript" data-type="module">
+      import React, { useState, useEffect, useRef, useMemo } from 'react';
+      import ReactDOM from 'react-dom/client';
+      import { 
+        LogOut, User as UserIcon, Activity, Camera, MapPin, 
+        CheckCircle2, AlertTriangle, XCircle, BookOpen, Info, 
+        UploadCloud, Trash2, Search, Filter, BarChart3, FileSpreadsheet,
+        Lock, UserCheck, ArrowRight, AlertCircle, ChevronDown, RefreshCw,
+        ShieldCheck, LayoutDashboard, FileText
+      } from 'lucide-react';
+      import * as XLSX from 'xlsx';
+
+      // --- TYPES & CONSTANTS ---
+      const UserRole = {
+        ADMIN: 'admin',
+        USER: 'user'
+      };
+
+      const EligibilityStatus = {
+        OK: 'ok',
+        WARNING: 'warning',
+        ERROR: 'error'
+      };
+
+      // --- SERVICES ---
+      const KEYS = {
+        AUTH: 'bssm_auth_v7',
+        DB: 'bssm_db_v7',
+        PHOTOS: 'bssm_photos_v1'
+      };
+
+      const storageService = {
+        getSession: () => {
+          try {
+            const data = localStorage.getItem(KEYS.AUTH);
+            return data ? JSON.parse(data) : null;
+          } catch { return null; }
+        },
+        setSession: (user) => localStorage.setItem(KEYS.AUTH, JSON.stringify(user)),
+        clearSession: () => localStorage.removeItem(KEYS.AUTH),
+        
+        getData: () => {
+          try {
+            const db = localStorage.getItem(KEYS.DB);
+            return db ? JSON.parse(db) : null;
+          } catch { return null; }
+        },
+        setData: (data) => {
+          const payload = {
+            data,
+            date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          };
+          localStorage.setItem(KEYS.DB, JSON.stringify(payload));
+        },
+        clearData: () => localStorage.removeItem(KEYS.DB),
+
+        getPhoto: (id) => {
+          try {
+            const photos = JSON.parse(localStorage.getItem(KEYS.PHOTOS) || '{}');
+            return photos[id] || null;
+          } catch { return null; }
+        },
+        setPhoto: (id, base64) => {
+          try {
+            const photos = JSON.parse(localStorage.getItem(KEYS.PHOTOS) || '{}');
+            photos[id] = base64;
+            localStorage.setItem(KEYS.PHOTOS, JSON.stringify(photos));
+            return true;
+          } catch (e) {
+            console.error("Storage full", e);
+            return false;
+          }
+        }
+      };
+
+      const parseExcelDate = (value) => {
+        if (!value) return '';
+        if (typeof value === 'number') {
+          const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+          if (!isNaN(date.getTime())) return date.toLocaleDateString('pt-BR');
+        }
+        return String(value).trim();
+      };
+
+      const parseExcelFile = async (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+              const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+              const normalizedData = json.map((row) => {
+                const getVal = (keys) => {
+                  for (const k of Object.keys(row)) {
+                    if (keys.some(key => k.trim().toLowerCase() === key.toLowerCase())) return row[k];
+                  }
+                  return '';
+                };
+
+                return {
+                  matricula: String(getVal(['Matrícula', 'Matricula', 'MATRICULA', 'ID'])).trim(),
+                  nome: String(getVal(['Nome', 'NOME', 'Colaborador'])).trim(),
+                  local: String(getVal(['Local', 'LOCAL', 'Setor'])).trim(),
+                  admissao: parseExcelDate(getVal(['Admissão', 'Admissao', 'ADMISSÃO'])),
+                  situacao: String(getVal(['Situação Atual', 'Situacao Atual', 'Situação', 'Status'])).trim(),
+                  nascimento: parseExcelDate(getVal(['Data Nascimento', 'Nascimento', 'DT NASC'])),
+                  cpf: String(getVal(['CPF', 'cpf', 'Doc'])).trim(),
+                  elegibilidade: String(getVal(['Elegibilidade', 'Status Beneficio', 'ELEGIVEL'])).trim(),
+                  cargo: String(getVal(['Cargo', 'Função'])).trim() 
+                };
+              }).filter(item => item.matricula && item.nome);
+              resolve(normalizedData);
+            } catch (error) { reject(error); }
+          };
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
+      };
+
+      // --- UI COMPONENTS ---
+
+      // Reusable Card Component
+      const Card = ({ children, className = "" }) => (
+        <div className={`bg-white rounded-3xl shadow-card border border-white/50 backdrop-blur-sm ${className}`}>
+          {children}
+        </div>
+      );
+
+      const Header = ({ user, onLogout }) => (
+        <header className="sticky top-0 z-50 w-full glass shadow-sm transition-all duration-300">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-20">
+              <div className="flex items-center gap-4 group cursor-default">
+                <div className="bg-hsm-blue/5 p-2.5 rounded-2xl group-hover:bg-hsm-blue/10 transition-colors duration-300">
+                  <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" alt="HSM" className="h-9 w-auto" />
+                </div>
+                <div className="hidden md:block w-px h-10 bg-gradient-to-b from-transparent via-slate-300 to-transparent mx-1"></div>
+                <div className="flex flex-col">
+                  <h1 className="font-heading text-xl font-bold text-slate-800 leading-none tracking-tight">
+                    Portal <span className={user.role === UserRole.ADMIN ? "text-hsm-blue" : "text-hsm-cyan"}>BSSM</span>
+                  </h1>
+                  <p className="text-[11px] text-slate-500 font-medium tracking-wider uppercase mt-1">Gestão de Benefícios</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-5">
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-sm font-bold text-slate-700">{user.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${user.role === UserRole.ADMIN ? 'bg-hsm-blue animate-pulse-soft' : 'bg-hsm-cyan'}`}></span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wide">
+                      {user.role === UserRole.ADMIN ? 'Administrador' : 'Colaborador'}
+                    </span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={onLogout} 
+                  className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-500 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all duration-300 shadow-sm active:scale-95"
+                  title="Sair"
+                >
+                  <LogOut size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+      );
+
+      const StatusBadge = ({ status, text }) => {
+        const config = {
+          [EligibilityStatus.OK]: { bg: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', icon: CheckCircle2, textClass: 'text-white' },
+          [EligibilityStatus.WARNING]: { bg: 'bg-amber-500', shadow: 'shadow-amber-500/30', icon: AlertTriangle, textClass: 'text-white' },
+          [EligibilityStatus.ERROR]: { bg: 'bg-rose-500', shadow: 'shadow-rose-500/30', icon: XCircle, textClass: 'text-white' },
+        }[status];
+
+        const Icon = config.icon;
+
+        return (
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${config.bg} ${config.textClass} ${config.shadow} shadow-lg backdrop-blur-sm transition-transform hover:scale-105`}>
+            <Icon size={16} strokeWidth={3} />
+            <span className="text-xs font-bold uppercase tracking-wide">{text}</span>
+          </div>
+        );
+      };
+
+      const DigitalId = ({ data }) => {
+        const [photo, setPhoto] = useState(storageService.getPhoto(data.matricula));
+        const [isFlipped, setIsFlipped] = useState(false);
+        const fileInputRef = useRef(null);
+
+        const getStatus = (text) => {
+          const s = text.toLowerCase();
+          if (s.includes('sem carência') || s.includes('elegível') || s.includes('ativo') || s.includes('ok')) return EligibilityStatus.OK;
+          if (s.includes('inapto') || s.includes('cancelado') || s.includes('desligado')) return EligibilityStatus.ERROR;
+          return EligibilityStatus.WARNING;
+        };
+
+        const status = getStatus(data.elegibilidade);
+
+        const handlePhotoUpload = (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          if (file.size > 5 * 1024 * 1024) return alert("A imagem deve ter no máximo 5MB.");
+
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.src = ev.target.result;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              const MAX = 500;
+              let { width, height } = img;
+              
+              if (width > height) { 
+                if (width > MAX) { height *= MAX / width; width = MAX; }
+              } else {
+                if (height > MAX) { width *= MAX / height; height = MAX; }
+              }
+              
+              canvas.width = width; canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+              const base64 = canvas.toDataURL('image/jpeg', 0.85);
+              if (storageService.setPhoto(data.matricula, base64)) setPhoto(base64);
+              else alert("Erro de armazenamento local (Limite excedido).");
+            }
+          };
+          reader.readAsDataURL(file);
+        };
+
+        return (
+          <div className="flex flex-col items-center justify-center py-8 px-4 w-full animate-slide-up">
+            <div className="relative group perspective-1000 w-full max-w-[400px]">
+               {/* Card Container */}
+               <div className="relative bg-white rounded-[32px] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] border border-white/60 transition-all duration-500 hover:shadow-[0_30px_70px_-20px_rgba(0,94,184,0.2)]">
+                  
+                  {/* Card Header with Pattern */}
+                  <div className="h-32 relative overflow-hidden bg-hsm-blue">
+                    <div className="absolute inset-0 bg-gradient-to-br from-hsm-blue via-hsm-dark to-slate-900 opacity-90"></div>
+                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:20px_20px]"></div>
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-hsm-cyan blur-[60px] opacity-40 rounded-full"></div>
+                    
+                    <div className="relative z-10 p-6 flex justify-between items-start">
+                      <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" className="h-10 brightness-0 invert opacity-95" alt="HSM Logo" />
+                      <div className="text-right">
+                        <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full inline-block">
+                          <p className="text-[10px] text-white font-bold uppercase tracking-widest">Beneficiário</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profile Section - Floating overlapping header */}
+                  <div className="relative z-20 px-6 -mt-14 flex items-end justify-between">
+                    <div className="relative group/photo">
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-28 h-28 bg-slate-100 rounded-[24px] border-4 border-white shadow-xl overflow-hidden cursor-pointer relative transition-transform duration-300 group-hover/photo:scale-105 active:scale-95 flex items-center justify-center"
+                      >
+                         {photo ? (
+                           <img src={photo} className="w-full h-full object-cover" alt="Foto perfil" />
+                         ) : (
+                           <div className="flex flex-col items-center justify-center text-slate-300">
+                             <Camera size={32} />
+                           </div>
+                         )}
+                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+                           <Camera className="text-white" size={24}/>
+                         </div>
+                      </div>
+                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                    </div>
+                    
+                    <div className="mb-1 text-right">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Status Atual</p>
+                      <StatusBadge status={status} text={data.elegibilidade} />
+                    </div>
+                  </div>
+
+                  {/* Info Body */}
+                  <div className="p-6 pt-5">
+                    <div className="mb-6">
+                      <h2 className="font-heading font-bold text-2xl text-slate-800 leading-tight">{data.nome}</h2>
+                      <p className="text-sm font-medium text-hsm-blue mt-1">{data.situacao}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100/80 hover:border-hsm-blue/20 transition-colors">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Matrícula</span>
+                        <span className="text-sm font-mono font-bold text-slate-700 tracking-tight">{data.matricula}</span>
+                      </div>
+                      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100/80 hover:border-hsm-blue/20 transition-colors">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Local</span>
+                        <span className="text-xs font-bold text-slate-700 leading-tight block truncate" title={data.local}>{data.local}</span>
+                      </div>
+                      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100/80 hover:border-hsm-blue/20 transition-colors">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Admissão</span>
+                        <span className="text-xs font-bold text-slate-700">{data.admissao || '—'}</span>
+                      </div>
+                      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100/80 hover:border-hsm-blue/20 transition-colors">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">CPF</span>
+                        <span className="text-xs font-mono font-bold text-slate-700">{data.cpf}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Decorative Footer Line */}
+                  <div className="h-1.5 w-full bg-gradient-to-r from-hsm-blue via-hsm-cyan to-hsm-blue"></div>
+               </div>
+            </div>
+
+            <div className="flex flex-col items-center mt-8 animate-pulse-soft">
+              <span className="text-[10px] font-bold text-hsm-blue uppercase tracking-[0.2em] mb-2 opacity-70">Acesso Rápido</span>
+              <ChevronDown className="text-hsm-blue opacity-50" size={20} />
+            </div>
+
+            <div className="w-full max-w-[400px] mt-4 grid grid-cols-2 gap-4">
+              <a href="https://docs.google.com/spreadsheets/d/1EG4rAXs_hVMTn9hWh4_54uymBziVn_Q7HW3lfdODam8/edit?usp=sharing" target="_blank" 
+                 className="group relative flex flex-col items-center justify-center p-6 bg-white rounded-[24px] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-xl hover:border-transparent hover:-translate-y-1 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-hsm-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-hsm-blue flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-hsm-blue group-hover:text-white transition-all duration-300 shadow-sm">
+                  <MapPin size={22} />
+                </div>
+                <span className="text-sm font-bold text-slate-700 group-hover:text-hsm-blue">Rede Credenciada</span>
+              </a>
+
+              <a href="https://drive.google.com/file/d/1gOaJJTTl9Pa9TcpFjVMatlhx__uM_Vae/view?usp=drive_link" target="_blank" 
+                 className="group relative flex flex-col items-center justify-center p-6 bg-white rounded-[24px] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-xl hover:border-transparent hover:-translate-y-1 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-hsm-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-hsm-cyan flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-hsm-cyan group-hover:text-white transition-all duration-300 shadow-sm">
+                  <BookOpen size={22} />
+                </div>
+                <span className="text-sm font-bold text-slate-700 group-hover:text-hsm-cyan">Cartilha Digital</span>
+              </a>
+            </div>
+          </div>
+        );
+      };
+
+      const AdminPanel = ({ data, lastUpdated, onDataUpdate, onClearData }) => {
+        const [filterText, setFilterText] = useState('');
+        const [isUploading, setIsUploading] = useState(false);
+
+        const { stats, majorityStatus } = useMemo(() => {
+          const statusCounts = {};
+          let eligible = 0, ineligible = 0;
+          data.forEach(d => {
+            const s = d.elegibilidade.trim();
+            statusCounts[s] = (statusCounts[s] || 0) + 1;
+            if (s.toLowerCase().includes('elegível') || s.toLowerCase().includes('ok')) eligible++; else ineligible++;
+          });
+          
+          let maxCount = 0, mode = '';
+          Object.entries(statusCounts).forEach(([s, c]) => { if (c > maxCount) { maxCount = c; mode = s; } });
+          
+          return { stats: { total: data.length, eligible, ineligible, lastUpdated }, majorityStatus: mode };
+        }, [data, lastUpdated]);
+
+        const filteredData = useMemo(() => data.filter(item => {
+          const s = filterText.toLowerCase();
+          return item.nome.toLowerCase().includes(s) || item.matricula.includes(s) || (item.cpf && item.cpf.includes(s)) || item.local.toLowerCase().includes(s);
+        }), [data, filterText]);
+
+        const handleFile = async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          setIsUploading(true);
+          try {
+            const parsed = await parseExcelFile(file);
+            storageService.setData(parsed);
+            onDataUpdate(parsed);
+            alert(`${parsed.length} registros importados com sucesso!`);
+          } catch (err) { alert("Erro ao processar o arquivo. Verifique o formato."); }
+          finally { setIsUploading(false); e.target.value = ''; }
+        };
+
+        const StatCard = ({ label, value, color, icon: Icon, sub }) => (
+          <div className={`bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden`}>
+            <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+              <Icon size={48} />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-heading font-bold text-slate-800">{value}</p>
+              </div>
+              {sub && <p className={`text-xs font-medium mt-2 ${color.replace('text-', 'bg-').replace('600', '100')} inline-block px-2 py-0.5 rounded-lg text-slate-600`}>{sub}</p>}
+            </div>
+            <div className={`h-1 absolute bottom-0 left-4 right-4 rounded-t-full ${color.replace('text', 'bg')}`}></div>
+          </div>
+        );
+
+        return (
+          <div className="space-y-8 pb-12 animate-fade-in w-full">
+             {/* Dashboard Header */}
+             <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+                <div>
+                  <h2 className="text-3xl font-heading font-bold text-slate-800 flex items-center gap-3">
+                    <LayoutDashboard className="text-hsm-blue" size={32}/> 
+                    Dashboard
+                  </h2>
+                  <p className="text-slate-500 mt-1">Visão geral da base de beneficiários</p>
+                </div>
+                {data.length > 0 && (
+                  <button onClick={() => confirm("Tem certeza que deseja apagar todos os dados?") && onClearData()} 
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-rose-200 text-rose-600 font-bold rounded-xl hover:bg-rose-50 hover:border-rose-300 transition-all shadow-sm active:scale-95 text-xs uppercase tracking-wide">
+                    <Trash2 size={16}/> Limpar Base
+                  </button>
+                )}
+             </div>
+
+             {/* Stats Grid */}
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="Total de Vidas" value={stats.total} color="text-hsm-blue" icon={UserIcon} />
+                <StatCard label="Elegíveis" value={stats.eligible} color="text-emerald-500" icon={ShieldCheck} />
+                <StatCard label="Atenção/Inaptos" value={stats.ineligible} color="text-rose-500" icon={AlertCircle} />
+                <div className="bg-gradient-to-br from-hsm-blue to-hsm-dark text-white p-5 rounded-[24px] shadow-lg shadow-hsm-blue/20 relative overflow-hidden group">
+                  <div className="relative z-10 h-full flex flex-col justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1">Última Atualização</p>
+                      <p className="text-lg font-bold">{stats.lastUpdated}</p>
+                    </div>
+                    <label className="mt-4 flex items-center justify-center w-full py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl cursor-pointer transition-all active:scale-95">
+                      <span className="text-xs font-bold uppercase tracking-wide flex items-center gap-2">
+                        {isUploading ? <RefreshCw className="animate-spin" size={16}/> : <UploadCloud size={16}/>} 
+                        {isUploading ? 'Processando...' : 'Importar Base'}
+                      </span>
+                      <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFile} disabled={isUploading} />
+                    </label>
+                  </div>
+                  <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:blur-3xl transition-all"></div>
+                </div>
+             </div>
+
+             {/* Data Table */}
+             <div className="bg-white rounded-[32px] shadow-card border border-slate-100 overflow-hidden flex flex-col">
+               <div className="p-6 border-b border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row justify-between gap-4 items-center">
+                 <h3 className="font-heading font-bold text-lg text-slate-700 flex items-center gap-2">
+                   <FileText size={20} className="text-slate-400"/> Registros
+                 </h3>
+                 <div className="relative w-full sm:w-72 group">
+                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-hsm-blue text-slate-400">
+                     <Search size={18}/>
+                   </div>
+                   <input 
+                    type="text" 
+                    className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-hsm-blue/20 focus:border-hsm-blue block w-full pl-10 pr-4 py-2.5 outline-none transition-all shadow-sm group-hover:border-slate-300" 
+                    placeholder="Buscar colaborador, matrícula..." 
+                    value={filterText} 
+                    onChange={e => setFilterText(e.target.value)} 
+                   />
+                 </div>
+               </div>
+
+               {filteredData.length === 0 ? (
+                 <div className="p-16 text-center flex flex-col items-center justify-center text-slate-400">
+                   <div className="bg-slate-50 p-6 rounded-full mb-4 animate-pulse">
+                    <FileSpreadsheet size={48} className="opacity-30"/>
+                   </div>
+                   <p className="font-medium text-slate-500">Nenhum registro encontrado</p>
+                   <p className="text-sm mt-1">Faça upload de uma planilha ou refine sua busca.</p>
+                 </div>
+               ) : (
+                 <div className="overflow-x-auto custom-scrollbar">
+                   <table className="w-full text-xs text-left text-slate-500">
+                     <thead className="text-[10px] text-slate-500 uppercase font-bold bg-slate-50/80 sticky top-0 backdrop-blur-sm z-10">
+                       <tr>
+                         <th className="px-6 py-4 tracking-wider">Matrícula</th>
+                         <th className="px-6 py-4 tracking-wider">Nome do Colaborador</th>
+                         <th className="px-6 py-4 tracking-wider">Local/Setor</th>
+                         <th className="px-6 py-4 tracking-wider">Admissão</th>
+                         <th className="px-6 py-4 tracking-wider">Situação</th>
+                         <th className="px-6 py-4 tracking-wider">CPF</th>
+                         <th className="px-6 py-4 tracking-wider text-center">Status</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-100">
+                       {filteredData.map((item, i) => {
+                         const isDiff = item.elegibilidade !== majorityStatus;
+                         const statusClass = item.elegibilidade.toLowerCase().includes('elegível') || item.elegibilidade.toLowerCase().includes('ok') 
+                           ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+                           : 'bg-amber-100 text-amber-800 border-amber-200';
+                           
+                         return (
+                           <tr key={i} className="bg-white hover:bg-slate-50 transition-colors group">
+                             <td className="px-6 py-3.5 font-mono font-medium text-slate-400 group-hover:text-hsm-blue transition-colors">{item.matricula}</td>
+                             <td className="px-6 py-3.5 font-bold text-slate-700 text-sm">{item.nome}</td>
+                             <td className="px-6 py-3.5">{item.local}</td>
+                             <td className="px-6 py-3.5">{item.admissao}</td>
+                             <td className="px-6 py-3.5">{item.situacao}</td>
+                             <td className="px-6 py-3.5 font-mono">{item.cpf}</td>
+                             <td className="px-6 py-3.5 text-center">
+                               <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide ${statusClass}`}>
+                                 {item.elegibilidade}
+                               </span>
+                             </td>
+                           </tr>
+                         )
+                       })}
+                     </tbody>
+                   </table>
+                 </div>
+               )}
+               <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 text-[10px] text-slate-400 font-medium flex justify-between">
+                  <span>Exibindo {filteredData.length} registros</span>
+                  <span>BSSM Database</span>
+               </div>
+             </div>
+          </div>
+        );
+      };
+
+      const Login = ({ onLogin }) => {
+        const [id, setId] = useState('');
+        const [pass, setPass] = useState('');
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState('');
+
+        const formatCPF = (v) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').replace(/(-\d{2})\d+?$/, '$1');
+
+        const handleChange = (e) => {
+          const val = e.target.value;
+          if (/[a-zA-Z]/.test(val)) setId(val);
+          else setId(formatCPF(val));
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          setLoading(true); setError('');
+          setTimeout(() => {
+             const clean = id.replace(/\D/g, '');
+             if (id.toLowerCase() === 'admin' && pass === 'admin') onLogin({ id: 'admin', name: 'Gestor Administrativo', role: UserRole.ADMIN });
+             else if (pass.length >= 4 && clean.length === 11) onLogin({ id, name: 'Colaborador', role: UserRole.USER, matricula: clean });
+             else { setError('Credenciais inválidas. Verifique seu CPF.'); setLoading(false); }
+          }, 1000);
+        };
+
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8] p-4 relative overflow-hidden">
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+              <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-hsm-blue/10 rounded-full blur-[100px]"></div>
+              <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-hsm-cyan/10 rounded-full blur-[100px]"></div>
+            </div>
+
+            <div className="w-full max-w-[420px] bg-white/80 backdrop-blur-xl rounded-[40px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] border border-white p-10 animate-scale-in relative z-10">
+               
+               <div className="flex flex-col items-center mb-10">
+                 <div className="w-24 h-24 bg-white rounded-3xl shadow-glow flex items-center justify-center mb-6 p-4">
+                    <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" className="w-full h-full object-contain" alt="HSM"/>
+                 </div>
+                 <h1 className="text-2xl font-heading font-bold text-slate-800 text-center">Bem-vindo ao <span className="text-hsm-blue">BSSM</span></h1>
+                 <p className="text-sm text-slate-500 font-medium mt-2">Portal de Benefícios</p>
+               </div>
+
+               <form onSubmit={handleSubmit} className="space-y-5">
+                 {error && (
+                   <div className="bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold p-4 rounded-2xl flex items-center gap-3 animate-fade-in">
+                     <AlertCircle size={18} className="shrink-0"/>
+                     {error}
+                   </div>
+                 )}
+                 
+                 <div className="space-y-1.5">
+                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Identificação</label>
+                   <div className="relative group">
+                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-hsm-blue transition-colors">
+                       <UserCheck size={20}/>
+                     </div>
+                     <input 
+                       type="text" 
+                       value={id} 
+                       onChange={handleChange} 
+                       className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent text-slate-800 font-bold rounded-2xl focus:bg-white focus:border-hsm-blue focus:shadow-glow outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" 
+                       placeholder="Digite seu CPF" 
+                       required
+                     />
+                   </div>
+                 </div>
+
+                 <div className="space-y-1.5">
+                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Senha de Acesso</label>
+                   <div className="relative group">
+                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-hsm-blue transition-colors">
+                       <Lock size={20}/>
+                     </div>
+                     <input 
+                       type="password" 
+                       value={pass} 
+                       onChange={e => setPass(e.target.value)} 
+                       className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent text-slate-800 font-bold rounded-2xl focus:bg-white focus:border-hsm-blue focus:shadow-glow outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" 
+                       placeholder="••••••••" 
+                       required
+                     />
+                   </div>
+                 </div>
+
+                 <button 
+                   type="submit" 
+                   disabled={loading} 
+                   className="w-full bg-gradient-to-r from-hsm-blue to-hsm-dark hover:brightness-110 text-white font-bold rounded-2xl text-sm py-4 shadow-lg shadow-hsm-blue/30 transform active:scale-95 transition-all flex justify-center items-center gap-2 mt-4"
+                 >
+                   {loading ? (
+                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                   ) : (
+                     <>ACESSAR PORTAL <ArrowRight size={18}/></>
+                   )}
+                 </button>
+               </form>
+
+               <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                 <p className="text-[10px] text-slate-400 font-medium">Hospital Santa Marta © 2026</p>
+                 <p className="text-[10px] text-slate-300 mt-1">Acesso seguro e criptografado</p>
+               </div>
+            </div>
+          </div>
+        );
+      };
+
+      const App = () => {
+        const [user, setUser] = useState(null);
+        const [dbData, setDbData] = useState([]);
+        const [lastUpdated, setLastUpdated] = useState('--');
+
+        useEffect(() => {
+          const sess = storageService.getSession();
+          if (sess) setUser(sess);
+          const db = storageService.getData();
+          if (db) { setDbData(db.data); setLastUpdated(db.date); }
+        }, []);
+
+        const handleLogin = (newUser) => {
+          if (newUser.role === UserRole.USER) {
+            const cpfRaw = newUser.id.replace(/\D/g, '');
+            const found = dbData.find(d => (d.cpf && d.cpf.replace(/\D/g, '') === cpfRaw) || d.matricula === cpfRaw);
+            if (found) { newUser.name = found.nome; newUser.matricula = found.matricula; }
+          }
+          setUser(newUser); storageService.setSession(newUser);
+        };
+
+        const handleLogout = () => { setUser(null); storageService.clearSession(); };
+        const handleClear = () => { setDbData([]); setLastUpdated('--'); storageService.clearData(); };
+        
+        if (!user) return <Login onLogin={handleLogin} />;
+
+        return (
+          <div className="min-h-screen flex flex-col bg-slate-50/50">
+            <Header user={user} onLogout={handleLogout} />
+            <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 animate-fade-in">
+              {user.role === UserRole.ADMIN ? (
+                <AdminPanel data={dbData} lastUpdated={lastUpdated} onDataUpdate={(d) => { setDbData(d); setLastUpdated(new Date().toLocaleDateString('pt-BR')); }} onClearData={handleClear} />
+              ) : (
+                <div className="flex flex-col items-center">
+                  {(() => {
+                    const cpfRaw = user.id.replace(/\D/g, '');
+                    const found = dbData.find(d => (d.cpf && d.cpf.replace(/\D/g, '') === cpfRaw) || d.matricula === cpfRaw);
+                    if (found) return <DigitalId data={found} />;
+                    return (
+                      <div className="text-center mt-20 p-10 bg-white rounded-[32px] shadow-card border border-white max-w-md animate-scale-in">
+                        <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 shadow-sm">
+                          <XCircle size={40} />
+                        </div>
+                        <h3 className="text-2xl font-heading font-bold text-slate-800">Cadastro não localizado</h3>
+                        <p className="text-slate-500 mt-3 leading-relaxed">
+                          O CPF <strong>{user.id}</strong> não foi encontrado na base de dados atual. 
+                          <br/><span className="text-xs text-slate-400 block mt-2">Por favor, contate o RH.</span>
+                        </p>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </main>
+            <footer className="bg-white border-t border-slate-100 mt-auto py-8">
+              <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70">
+                <div className="flex items-center gap-3 grayscale hover:grayscale-0 transition-all duration-500">
+                  <img src="https://raw.githubusercontent.com/instrutormedeiros/IndicadoresBrigadaHSM/refs/heads/main/assets/LOGO%20HSM.png" className="h-7 w-auto" />
+                  <div className="h-4 w-px bg-slate-300"></div>
+                  <span className="text-xs font-bold text-slate-600">© 2026 Hospital Santa Marta</span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium bg-slate-50 px-3 py-1 rounded-full">BSSM Enterprise v8.0 • Secure Build</p>
+              </div>
+            </footer>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
